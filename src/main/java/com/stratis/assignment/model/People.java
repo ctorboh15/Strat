@@ -1,5 +1,6 @@
 package com.stratis.assignment.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 
@@ -13,8 +14,13 @@ public class People {
   private String unit;
   private List<String> roles;
 
-
-  public String getFullName(){
+  @JsonIgnore
+  public String getFullName() {
     return first_name.toLowerCase() + last_name.toLowerCase();
+  }
+
+  @JsonIgnore
+  public boolean isAdmin() {
+    return roles.contains("Admin");
   }
 }

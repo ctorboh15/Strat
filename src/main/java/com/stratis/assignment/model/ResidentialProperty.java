@@ -8,7 +8,7 @@ import java.util.List;
 @Data
 @JsonIgnoreProperties(ignoreUnknown=true)
 public class ResidentialProperty {
-  private int id;
+  private String name;
   private Address address;
   private Devices devices;
   private List<People> people;

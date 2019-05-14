@@ -1,6 +1,7 @@
 package com.stratis.assignment.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import java.util.ArrayList;
 import lombok.Data;
 
 import java.util.List;
