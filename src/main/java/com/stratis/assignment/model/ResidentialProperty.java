@@ -5,8 +5,9 @@ import lombok.Data;
 
 import java.util.List;
 
+/** Main data model that houses all resident and device objects */
 @Data
-@JsonIgnoreProperties(ignoreUnknown=true)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ResidentialProperty {
   private String name;
   private Address address;

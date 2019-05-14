@@ -3,6 +3,7 @@ package com.stratis.assignment.model;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 
+/** Address Data model */
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Address {

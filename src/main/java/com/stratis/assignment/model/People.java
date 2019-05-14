@@ -6,6 +6,7 @@ import lombok.Data;
 
 import java.util.List;
 
+/** People Data Model */
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class People {

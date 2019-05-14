@@ -36,12 +36,23 @@ public class ResidentialPropertyDataService {
     this.peopleMap = new HashMap<>();
   }
 
+  /**
+   * returns all residents in the property
+   *
+   * @return
+   */
   public List<People> getAllResidents() {
     ResidentialProperty residentialProperty = residentialPropertyMap.get(defaultResidentialName);
     List<People> residents = residentialProperty.getPeople().stream().collect(Collectors.toList());
     return residents;
   }
 
+  /**
+   * Gets all residents within a unit
+   *
+   * @param unitNumber
+   * @return
+   */
   public List<People> getAllResidentsInUnit(String unitNumber) {
     ResidentialProperty residentialProperty = residentialPropertyMap.get(defaultResidentialName);
     List<People> residents =
@@ -54,6 +65,15 @@ public class ResidentialPropertyDataService {
     return residents;
   }
 
+  /**
+   * Updates or Creates a resident for the existing residential property
+   *
+   * @param firstName
+   * @param lastName
+   * @param unit
+   * @param isAdmin
+   * @throws IOException
+   */
   public void updateResidentInProperty(
       String firstName, String lastName, String unit, boolean isAdmin) throws IOException {
     String fullname = firstName + lastName;
@@ -89,6 +109,14 @@ public class ResidentialPropertyDataService {
     writeResidentialPropertyChangestoFile();
   }
 
+  /**
+   * Removes a resident from the existing Residential Property
+   *
+   * @param firstName
+   * @param lastName
+   * @param unit
+   * @throws IOException
+   */
   public void removeResidentFromProperty(String firstName, String lastName, String unit)
       throws IOException {
     String fullname = firstName + lastName;
@@ -193,6 +221,11 @@ public class ResidentialPropertyDataService {
     }
   }
 
+  /**
+   * Writes crud operations to the residency to the specified file
+   *
+   * @throws IOException
+   */
   private void writeResidentialPropertyChangestoFile() throws IOException {
     objectMapper.writeValue(
         new File("property_data_changes.json"), residentialPropertyMap.get(defaultResidentialName));
