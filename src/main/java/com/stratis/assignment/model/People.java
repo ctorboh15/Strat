@@ -24,4 +24,13 @@ public class People {
   public boolean isAdmin() {
     return roles.contains("Admin");
   }
+
+  @JsonIgnore
+  public void toggleAdminFlag(boolean adminFlag) {
+    if (adminFlag) {
+      roles.add("Admin");
+    } else {
+      roles.remove("Admin");
+    }
+  }
 }

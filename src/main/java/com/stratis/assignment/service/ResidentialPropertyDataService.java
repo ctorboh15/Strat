@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/** Data Service for retrieving and persisting resident data */
 @Component
 public class ResidentialPropertyDataService {
 
@@ -24,7 +25,7 @@ public class ResidentialPropertyDataService {
   private String resourceFileName;
 
   @Value("${default.resident.name}")
-  private String defaultResidentialName;
+  private String defaultPropertyName;
 
   private ObjectMapper objectMapper;
   private Map<String, ResidentialProperty> residentialPropertyMap;
@@ -42,7 +43,7 @@ public class ResidentialPropertyDataService {
    * @return
    */
   public List<People> getAllResidents() {
-    ResidentialProperty residentialProperty = residentialPropertyMap.get(defaultResidentialName);
+    ResidentialProperty residentialProperty = residentialPropertyMap.get(defaultPropertyName);
     List<People> residents = residentialProperty.getPeople().stream().collect(Collectors.toList());
     return residents;
   }
@@ -54,7 +55,7 @@ public class ResidentialPropertyDataService {
    * @return
    */
   public List<People> getAllResidentsInUnit(String unitNumber) {
-    ResidentialProperty residentialProperty = residentialPropertyMap.get(defaultResidentialName);
+    ResidentialProperty residentialProperty = residentialPropertyMap.get(defaultPropertyName);
     List<People> residents =
         residentialProperty.getPeople().stream()
             .filter(
@@ -81,29 +82,35 @@ public class ResidentialPropertyDataService {
 
     if (peopleMap.containsKey(fullname)) {
       resident = peopleMap.get(fullname);
-      int residentIndex =
-          residentialPropertyMap.get(defaultResidentialName).getPeople().indexOf(resident);
 
       resident.setUnit(unit);
-      if (isAdmin) {
-        resident.getRoles().add("Admin");
-      }
+      resident.toggleAdminFlag(isAdmin);
 
-      residentialPropertyMap.get(defaultResidentialName).getPeople().add(residentIndex, resident);
-
-    } else {
-      resident = new People();
-      List<String> roles = new ArrayList<>();
-      roles.add("Resident");
-      if (isAdmin) {
-        roles.add("Admin");
-      }
-      resident.setFirst_name(firstName);
-      resident.setLast_name(lastName);
-      resident.setUnit(unit);
-      resident.setRoles(roles);
-      residentialPropertyMap.get(defaultResidentialName).getPeople().add(resident);
+      writeResidentialPropertyChangestoFile();
     }
+  }
+
+  public void createResidentInProperty(
+      String firstName, String lastName, String unit, boolean isAdmin) throws IOException {
+    String fullname = firstName + lastName;
+    People resident;
+
+    if (peopleMap.containsKey(fullname)) {
+      resident = peopleMap.get(fullname);
+      if (resident.getUnit() == unit) {
+        // throw new Exception here
+      }
+    }
+    resident = new People();
+    List<String> roles = new ArrayList<>();
+    roles.add("Resident");
+    resident.setFirst_name(firstName);
+    resident.setLast_name(lastName);
+    resident.setUnit(unit);
+    resident.setRoles(roles);
+
+    resident.toggleAdminFlag(isAdmin);
+    residentialPropertyMap.get(defaultPropertyName).getPeople().add(resident);
 
     peopleMap.put(resident.getFullName(), resident);
     writeResidentialPropertyChangestoFile();
@@ -117,18 +124,28 @@ public class ResidentialPropertyDataService {
    * @param unit
    * @throws IOException
    */
-  public void removeResidentFromProperty(String firstName, String lastName, String unit)
+  public void removeResidentFromProperty(String firstName, String lastName, String unitToRemoveFrom)
       throws IOException {
     String fullname = firstName + lastName;
     People resident;
 
     if (peopleMap.containsKey(fullname)) {
       resident = peopleMap.get(fullname);
-      residentialPropertyMap.get(defaultResidentialName).getPeople().remove(resident);
-      writeResidentialPropertyChangestoFile();
+
+      if (resident.getUnit().equalsIgnoreCase(unitToRemoveFrom)) {
+        residentialPropertyMap.get(defaultPropertyName).getPeople().remove(resident);
+        peopleMap.remove(resident);
+        writeResidentialPropertyChangestoFile();
+      }
     }
   }
 
+  /**
+   * Get a resident based on their full name
+   *
+   * @param fullName
+   * @return
+   */
   public People getResident(String fullName) {
     return peopleMap.get(fullName);
   }
@@ -142,7 +159,7 @@ public class ResidentialPropertyDataService {
     } else {
       residentDevices = new Devices();
       residentDevices.setLights(
-          residentialPropertyMap.get(defaultResidentialName).getDevices().getLights().stream()
+          residentialPropertyMap.get(defaultPropertyName).getDevices().getLights().stream()
               .filter(
                   propertyDevice -> {
                     return propertyDevice.getUnit() == unitNumber;
@@ -150,7 +167,7 @@ public class ResidentialPropertyDataService {
               .collect(Collectors.toList()));
 
       residentDevices.setLocks(
-          residentialPropertyMap.get(defaultResidentialName).getDevices().getLocks().stream()
+          residentialPropertyMap.get(defaultPropertyName).getDevices().getLocks().stream()
               .filter(
                   propertyDevice -> {
                     return propertyDevice.getUnit() == unitNumber;
@@ -158,7 +175,7 @@ public class ResidentialPropertyDataService {
               .collect(Collectors.toList()));
 
       residentDevices.setThermostats(
-          residentialPropertyMap.get(defaultResidentialName).getDevices().getThermostats().stream()
+          residentialPropertyMap.get(defaultPropertyName).getDevices().getThermostats().stream()
               .filter(
                   propertyDevice -> {
                     return propertyDevice.getUnit() == unitNumber;
@@ -169,12 +186,18 @@ public class ResidentialPropertyDataService {
     return residentDevices;
   }
 
+  /**
+   * Return a list of devices for Admins
+   *
+   * @param unitNumber
+   * @return
+   */
   private Devices getDevicesForAdminResident(int unitNumber) {
 
     Devices adminResidentDevices = new Devices();
 
     adminResidentDevices.setLights(
-        residentialPropertyMap.get(defaultResidentialName).getDevices().getLights().stream()
+        residentialPropertyMap.get(defaultPropertyName).getDevices().getLights().stream()
             .filter(
                 propertyDevice -> {
                   return propertyDevice.getUnit() == unitNumber
@@ -183,7 +206,7 @@ public class ResidentialPropertyDataService {
             .collect(Collectors.toList()));
 
     adminResidentDevices.setLocks(
-        residentialPropertyMap.get(defaultResidentialName).getDevices().getLocks().stream()
+        residentialPropertyMap.get(defaultPropertyName).getDevices().getLocks().stream()
             .filter(
                 propertyDevice -> {
                   return propertyDevice.getUnit() == unitNumber
@@ -192,7 +215,7 @@ public class ResidentialPropertyDataService {
             .collect(Collectors.toList()));
 
     adminResidentDevices.setThermostats(
-        residentialPropertyMap.get(defaultResidentialName).getDevices().getThermostats().stream()
+        residentialPropertyMap.get(defaultPropertyName).getDevices().getThermostats().stream()
             .filter(
                 propertyDevice -> {
                   return propertyDevice.getUnit() == unitNumber
@@ -228,6 +251,6 @@ public class ResidentialPropertyDataService {
    */
   private void writeResidentialPropertyChangestoFile() throws IOException {
     objectMapper.writeValue(
-        new File("property_data_changes.json"), residentialPropertyMap.get(defaultResidentialName));
+        new File("property_data_changes.json"), residentialPropertyMap.get(defaultPropertyName));
   }
 }
