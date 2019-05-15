@@ -14,7 +14,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-/** Rest Controller for interacting with the residence service */
+import javax.persistence.EntityExistsException;
+import javax.persistence.EntityNotFoundException;
+
+/**
+ * Rest Controller for interacting with the residence service... I know I should send a payload for
+ * non GET requests but because of constraints I added them to PUT and POST requests as a form of
+ * "validation"
+ */
 @RestController
 @RequestMapping("/")
 public class ResidentController {
@@ -33,18 +40,18 @@ public class ResidentController {
     return new ResponseEntity<>(HttpStatus.NOT_FOUND);
   }
 
-  @GetMapping("/residents/unit")
+  @GetMapping("/residence/people")
   public ResponseEntity<List<ResidentialApiObject>> getAllResidents(
-      @RequestParam Optional<String> unitNumber) {
+      @RequestParam Optional<String> unit) {
     return new ResponseEntity<>(
-        unitNumber.map(residentialPropertyDataService::getAllResidentsInUnit)
+        unit.map(residentialPropertyDataService::getAllResidentsInUnit)
             .orElse(residentialPropertyDataService.getAllResidents()).stream()
             .map(ResidentialApiObject::new)
             .collect(Collectors.toList()),
         HttpStatus.OK);
   }
 
-  @GetMapping("/residents")
+  @GetMapping("/residence/people/search")
   public ResponseEntity<ResidentialApiObject> getResident(
       @RequestParam String firstName, @RequestParam String lastName) {
     People resident = getResidentFromDataService(firstName, lastName);
@@ -57,7 +64,7 @@ public class ResidentController {
     return new ResponseEntity<>(HttpStatus.NOT_FOUND);
   }
 
-  @PostMapping("/residents/unit/{unit}")
+  @PostMapping("/residence/unit/{unit}")
   public ResponseEntity createResident(
       @RequestParam String firstName,
       @RequestParam String lastName,
@@ -72,13 +79,15 @@ public class ResidentController {
     } catch (IOException e) {
       e.printStackTrace();
       return new ResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR);
+    } catch (EntityExistsException ex) {
+      return new ResponseEntity(ex.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
     return new ResponseEntity(HttpStatus.CREATED);
   }
 
-  @PutMapping("/residents/unit/{unit}")
-  public ResponseEntity updateResident(
+  @PutMapping("/residence/unit/{unit}")
+  public ResponseEntity<People> updateResident(
       @RequestParam String firstName,
       @RequestParam String lastName,
       @PathVariable String unit,
@@ -92,12 +101,14 @@ public class ResidentController {
     } catch (IOException e) {
       e.printStackTrace();
       return new ResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR);
+    } catch (EntityNotFoundException ex) {
+      return new ResponseEntity(ex.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
-    return new ResponseEntity(HttpStatus.CREATED);
+    return new ResponseEntity(getResidentFromDataService(firstName, lastName), HttpStatus.OK);
   }
 
-  @DeleteMapping("/residents/unit/{unit}")
+  @DeleteMapping("/residence/unit/{unit}")
   public ResponseEntity removeResident(
       @RequestParam String firstName, @RequestParam String lastName, @PathVariable String unit) {
     firstName = firstName.toLowerCase();
@@ -114,7 +125,7 @@ public class ResidentController {
   }
 
   private People getResidentFromDataService(String firstName, String lastName) {
-    String fullname = firstName.toLowerCase() + lastName.toLowerCase();
-    return residentialPropertyDataService.getResident(fullname);
+    String fullName = firstName.toLowerCase() + lastName.toLowerCase();
+    return residentialPropertyDataService.getResident(fullName);
   }
 }

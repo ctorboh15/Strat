@@ -9,6 +9,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
+import javax.persistence.EntityExistsException;
+import javax.persistence.EntityNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -58,16 +60,13 @@ public class ResidentialPropertyDataService {
     ResidentialProperty residentialProperty = residentialPropertyMap.get(defaultPropertyName);
     List<People> residents =
         residentialProperty.getPeople().stream()
-            .filter(
-                person -> {
-                  return person.getUnit().equalsIgnoreCase(unitNumber);
-                })
+            .filter(person -> person.getUnit().equalsIgnoreCase(unitNumber))
             .collect(Collectors.toList());
     return residents;
   }
 
   /**
-   * Updates or Creates a resident for the existing residential property
+   * Updates an existing resident for the property
    *
    * @param firstName
    * @param lastName
@@ -77,28 +76,38 @@ public class ResidentialPropertyDataService {
    */
   public void updateResidentInProperty(
       String firstName, String lastName, String unit, boolean isAdmin) throws IOException {
-    String fullname = firstName + lastName;
-    People resident;
+    String fullName = firstName + lastName;
 
-    if (peopleMap.containsKey(fullname)) {
-      resident = peopleMap.get(fullname);
-
-      resident.setUnit(unit);
-      resident.toggleAdminFlag(isAdmin);
-
-      writeResidentialPropertyChangestoFile();
+    if (!peopleMap.containsKey(fullName)) {
+      throw new EntityNotFoundException("No resident found for this unit");
     }
+
+    People resident = peopleMap.get(fullName);
+
+    resident.setUnit(unit);
+    resident.toggleAdminFlag(isAdmin);
+
+    writeResidentialPropertyChangestoFile();
   }
 
+  /**
+   * Creates a new resident for a property
+   *
+   * @param firstName
+   * @param lastName
+   * @param unit
+   * @param isAdmin
+   * @throws IOException
+   */
   public void createResidentInProperty(
       String firstName, String lastName, String unit, boolean isAdmin) throws IOException {
-    String fullname = firstName + lastName;
+    String fullName = firstName + lastName;
     People resident;
 
-    if (peopleMap.containsKey(fullname)) {
-      resident = peopleMap.get(fullname);
-      if (resident.getUnit() == unit) {
-        // throw new Exception here
+    if (peopleMap.containsKey(fullName)) {
+      resident = peopleMap.get(fullName);
+      if (resident.getUnit() != unit) {
+        throw new EntityExistsException("A resident with this name already exists for this unit");
       }
     }
     resident = new People();
@@ -141,7 +150,7 @@ public class ResidentialPropertyDataService {
   }
 
   /**
-   * Get a resident based on their full name
+   * Get a list of devices a resident has access to based on their full name
    *
    * @param fullName
    * @return
@@ -160,26 +169,17 @@ public class ResidentialPropertyDataService {
       residentDevices = new Devices();
       residentDevices.setLights(
           residentialPropertyMap.get(defaultPropertyName).getDevices().getLights().stream()
-              .filter(
-                  propertyDevice -> {
-                    return propertyDevice.getUnit() == unitNumber;
-                  })
+              .filter(propertyDevice -> propertyDevice.getUnit() == unitNumber)
               .collect(Collectors.toList()));
 
       residentDevices.setLocks(
           residentialPropertyMap.get(defaultPropertyName).getDevices().getLocks().stream()
-              .filter(
-                  propertyDevice -> {
-                    return propertyDevice.getUnit() == unitNumber;
-                  })
+              .filter(propertyDevice -> propertyDevice.getUnit() == unitNumber)
               .collect(Collectors.toList()));
 
       residentDevices.setThermostats(
           residentialPropertyMap.get(defaultPropertyName).getDevices().getThermostats().stream()
-              .filter(
-                  propertyDevice -> {
-                    return propertyDevice.getUnit() == unitNumber;
-                  })
+              .filter(propertyDevice -> propertyDevice.getUnit() == unitNumber)
               .collect(Collectors.toList()));
     }
 
@@ -199,28 +199,22 @@ public class ResidentialPropertyDataService {
     adminResidentDevices.setLights(
         residentialPropertyMap.get(defaultPropertyName).getDevices().getLights().stream()
             .filter(
-                propertyDevice -> {
-                  return propertyDevice.getUnit() == unitNumber
-                      || propertyDevice.isAdminAccessible();
-                })
+                propertyDevice ->
+                    propertyDevice.getUnit() == unitNumber || propertyDevice.isAdminAccessible())
             .collect(Collectors.toList()));
 
     adminResidentDevices.setLocks(
         residentialPropertyMap.get(defaultPropertyName).getDevices().getLocks().stream()
             .filter(
-                propertyDevice -> {
-                  return propertyDevice.getUnit() == unitNumber
-                      || propertyDevice.isAdminAccessible();
-                })
+                propertyDevice ->
+                    propertyDevice.getUnit() == unitNumber || propertyDevice.isAdminAccessible())
             .collect(Collectors.toList()));
 
     adminResidentDevices.setThermostats(
         residentialPropertyMap.get(defaultPropertyName).getDevices().getThermostats().stream()
             .filter(
-                propertyDevice -> {
-                  return propertyDevice.getUnit() == unitNumber
-                      || propertyDevice.isAdminAccessible();
-                })
+                propertyDevice ->
+                    propertyDevice.getUnit() == unitNumber || propertyDevice.isAdminAccessible())
             .collect(Collectors.toList()));
 
     return adminResidentDevices;

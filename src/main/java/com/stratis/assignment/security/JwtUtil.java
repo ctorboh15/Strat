@@ -3,6 +3,7 @@ package com.stratis.assignment.security;
 import com.stratis.assignment.model.People;
 import com.stratis.assignment.service.ResidentialPropertyDataService;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import org.slf4j.Logger;
@@ -60,21 +61,27 @@ public class JwtUtil implements Serializable {
   }
 
   public Boolean validateToken(String token) {
-    token = token.replace("Bearer ","");
+    token = token.replace("Bearer ", "");
 
-    if (isTokenExpired(token)) {
-      logger.info("Jwt Token has expired");
-      return false;
+    try {
+      if (isTokenExpired(token)) {
+        logger.info("Jwt Token has expired");
+        return false;
+      }
+
+      final String fullName = getFullNameFromToken(token);
+      People resident = residentialPropertyDataService.getResident(fullName);
+
+      if (resident == null) {
+        logger.info("No valid resident found from token");
+        return false;
+      }
+
+      return true;
+    } catch (ExpiredJwtException expiredJwtException) {
+      logger.info(expiredJwtException.getMessage());
     }
 
-    final String fullName = getFullNameFromToken(token);
-    People resident = residentialPropertyDataService.getResident(fullName);
-
-    if (resident == null) {
-      logger.info("No valid resident found from token");
-      return false;
-    }
-
-    return true;
+    return false;
   }
 }
