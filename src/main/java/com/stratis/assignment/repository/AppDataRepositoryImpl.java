@@ -21,7 +21,7 @@ public class AppDataRepositoryImpl implements AppDataRepository {
   private Map<String, ResidentialProperty> residentialPropertyMap;
   private Map<String, People> peopleMap;
 
-  @Value("${resource.filename}")
+  @Value("${init.resource.filename}")
   private String resourceFileName;
 
   public AppDataRepositoryImpl(ObjectMapper objectMapper) {

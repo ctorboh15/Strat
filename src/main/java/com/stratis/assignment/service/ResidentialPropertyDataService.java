@@ -17,9 +17,6 @@ import java.util.stream.Collectors;
 @Component
 public class ResidentialPropertyDataService {
 
-  @Value("${init.resource.filename}")
-  private String resourceFileName;
-
   @Value("${default.resident.name}")
   private String defaultPropertyName;
 
