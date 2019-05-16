@@ -13,6 +13,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * This filter verifies that the jwt is valid for accessing the application
+ */
 @Component
 public class JwtFilter extends OncePerRequestFilter {
 

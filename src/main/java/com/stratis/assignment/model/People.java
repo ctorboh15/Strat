@@ -28,7 +28,9 @@ public class People {
   @JsonIgnore
   public void toggleAdminFlag(boolean adminFlag) {
     if (adminFlag) {
-      roles.add("Admin");
+      if (!roles.contains("Admin")) {
+        roles.add("Admin");
+      }
     } else {
       roles.remove("Admin");
     }

@@ -6,6 +6,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.stratis.assignment.model.Devices;
 import com.stratis.assignment.model.People;
 
+/**
+ * The thought behind this class is that I wanted to have a way to cleany tie residents to their
+ * allowed devices ... By using an api object I can do that and keep a uniform response to clients
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ResidentialApiObject {

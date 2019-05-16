@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/** Data Service for retrieving and persisting resident data */
+/** Data Service for CRUD operations on residence data */
 @Component
 public class ResidentialPropertyDataService {
 
@@ -102,6 +102,7 @@ public class ResidentialPropertyDataService {
   public void createResidentInProperty(
       String firstName, String lastName, String unit, boolean isAdmin) throws IOException {
     String fullName = firstName + lastName;
+    fullName = fullName.toLowerCase();
     People resident;
 
     if (peopleMap.containsKey(fullName)) {
@@ -128,25 +129,13 @@ public class ResidentialPropertyDataService {
   /**
    * Removes a resident from the existing Residential Property
    *
-   * @param firstName
-   * @param lastName
-   * @param unit
+   * @param resident
    * @throws IOException
    */
-  public void removeResidentFromProperty(String firstName, String lastName, String unitToRemoveFrom)
-      throws IOException {
-    String fullname = firstName + lastName;
-    People resident;
-
-    if (peopleMap.containsKey(fullname)) {
-      resident = peopleMap.get(fullname);
-
-      if (resident.getUnit().equalsIgnoreCase(unitToRemoveFrom)) {
-        residentialPropertyMap.get(defaultPropertyName).getPeople().remove(resident);
-        peopleMap.remove(resident);
-        writeResidentialPropertyChangestoFile();
-      }
-    }
+  public void removeResidentFromProperty(People resident) throws IOException {
+    residentialPropertyMap.get(defaultPropertyName).getPeople().remove(resident);
+    peopleMap.remove(resident.getFullName());
+    writeResidentialPropertyChangestoFile();
   }
 
   /**

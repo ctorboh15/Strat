@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 import java.io.Serializable;
 import java.util.Date;
 
+/** Util class for generating and validating a JWT */
 @Component
 public class JwtUtil implements Serializable {
   Logger logger = LoggerFactory.getLogger(JwtUtil.class);
