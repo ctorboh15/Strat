@@ -1,42 +1,32 @@
 package com.stratis.assignment.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.stratis.assignment.repository.AppDataRepository;
 import com.stratis.assignment.model.Devices;
 import com.stratis.assignment.model.People;
-import com.stratis.assignment.model.ResidentialProperty;
-import java.io.File;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
 import javax.persistence.EntityExistsException;
 import javax.persistence.EntityNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /** Data Service for CRUD operations on residence data */
 @Component
 public class ResidentialPropertyDataService {
 
-  @Value("${resource.filename}")
+  @Value("${init.resource.filename}")
   private String resourceFileName;
 
   @Value("${default.resident.name}")
   private String defaultPropertyName;
 
-  private ObjectMapper objectMapper;
-  private Map<String, ResidentialProperty> residentialPropertyMap;
-  private Map<String, People> peopleMap;
+  private AppDataRepository appDataRepository;
 
-  public ResidentialPropertyDataService(ObjectMapper objectMapper) {
-    this.objectMapper = objectMapper;
-    this.residentialPropertyMap = new HashMap<>();
-    this.peopleMap = new HashMap<>();
+  public ResidentialPropertyDataService(AppDataRepository appDataRepository) {
+    this.appDataRepository = appDataRepository;
   }
 
   /**
@@ -45,9 +35,7 @@ public class ResidentialPropertyDataService {
    * @return
    */
   public List<People> getAllResidents() {
-    ResidentialProperty residentialProperty = residentialPropertyMap.get(defaultPropertyName);
-    List<People> residents = residentialProperty.getPeople().stream().collect(Collectors.toList());
-    return residents;
+    return appDataRepository.findAllResidents(defaultPropertyName);
   }
 
   /**
@@ -57,12 +45,7 @@ public class ResidentialPropertyDataService {
    * @return
    */
   public List<People> getAllResidentsInUnit(String unitNumber) {
-    ResidentialProperty residentialProperty = residentialPropertyMap.get(defaultPropertyName);
-    List<People> residents =
-        residentialProperty.getPeople().stream()
-            .filter(person -> person.getUnit().equalsIgnoreCase(unitNumber))
-            .collect(Collectors.toList());
-    return residents;
+    return appDataRepository.findAllResidentsByUnit(defaultPropertyName, unitNumber);
   }
 
   /**
@@ -78,16 +61,16 @@ public class ResidentialPropertyDataService {
       String firstName, String lastName, String unit, boolean isAdmin) throws IOException {
     String fullName = firstName + lastName;
 
-    if (!peopleMap.containsKey(fullName)) {
+    People resident = appDataRepository.findResident(fullName);
+
+    if (resident == null) {
       throw new EntityNotFoundException("No resident found for this unit");
     }
-
-    People resident = peopleMap.get(fullName);
 
     resident.setUnit(unit);
     resident.toggleAdminFlag(isAdmin);
 
-    writeResidentialPropertyChangestoFile();
+    appDataRepository.updateResident(defaultPropertyName, resident);
   }
 
   /**
@@ -103,13 +86,11 @@ public class ResidentialPropertyDataService {
       String firstName, String lastName, String unit, boolean isAdmin) throws IOException {
     String fullName = firstName + lastName;
     fullName = fullName.toLowerCase();
-    People resident;
 
-    if (peopleMap.containsKey(fullName)) {
-      resident = peopleMap.get(fullName);
-      if (resident.getUnit() != unit) {
-        throw new EntityExistsException("A resident with this name already exists for this unit");
-      }
+    People resident = appDataRepository.findResident(fullName);
+
+    if (resident != null && resident.getUnit().equals(unit)) {
+      throw new EntityExistsException("A resident with this name already exists for this unit");
     }
     resident = new People();
     List<String> roles = new ArrayList<>();
@@ -120,10 +101,8 @@ public class ResidentialPropertyDataService {
     resident.setRoles(roles);
 
     resident.toggleAdminFlag(isAdmin);
-    residentialPropertyMap.get(defaultPropertyName).getPeople().add(resident);
 
-    peopleMap.put(resident.getFullName(), resident);
-    writeResidentialPropertyChangestoFile();
+    appDataRepository.saveResident(defaultPropertyName, resident);
   }
 
   /**
@@ -133,9 +112,7 @@ public class ResidentialPropertyDataService {
    * @throws IOException
    */
   public void removeResidentFromProperty(People resident) throws IOException {
-    residentialPropertyMap.get(defaultPropertyName).getPeople().remove(resident);
-    peopleMap.remove(resident.getFullName());
-    writeResidentialPropertyChangestoFile();
+    appDataRepository.deleteResident(defaultPropertyName, resident);
   }
 
   /**
@@ -145,7 +122,7 @@ public class ResidentialPropertyDataService {
    * @return
    */
   public People getResident(String fullName) {
-    return peopleMap.get(fullName);
+    return appDataRepository.findResident(fullName);
   }
 
   public Devices getDevicesForResident(People resident) {
@@ -157,17 +134,17 @@ public class ResidentialPropertyDataService {
     } else {
       residentDevices = new Devices();
       residentDevices.setLights(
-          residentialPropertyMap.get(defaultPropertyName).getDevices().getLights().stream()
+          appDataRepository.getDevices(defaultPropertyName).getLights().stream()
               .filter(propertyDevice -> propertyDevice.getUnit() == unitNumber)
               .collect(Collectors.toList()));
 
       residentDevices.setLocks(
-          residentialPropertyMap.get(defaultPropertyName).getDevices().getLocks().stream()
+          appDataRepository.getDevices(defaultPropertyName).getLocks().stream()
               .filter(propertyDevice -> propertyDevice.getUnit() == unitNumber)
               .collect(Collectors.toList()));
 
       residentDevices.setThermostats(
-          residentialPropertyMap.get(defaultPropertyName).getDevices().getThermostats().stream()
+          appDataRepository.getDevices(defaultPropertyName).getThermostats().stream()
               .filter(propertyDevice -> propertyDevice.getUnit() == unitNumber)
               .collect(Collectors.toList()));
     }
@@ -186,54 +163,26 @@ public class ResidentialPropertyDataService {
     Devices adminResidentDevices = new Devices();
 
     adminResidentDevices.setLights(
-        residentialPropertyMap.get(defaultPropertyName).getDevices().getLights().stream()
+        appDataRepository.getDevices(defaultPropertyName).getLights().stream()
             .filter(
                 propertyDevice ->
                     propertyDevice.getUnit() == unitNumber || propertyDevice.isAdminAccessible())
             .collect(Collectors.toList()));
 
     adminResidentDevices.setLocks(
-        residentialPropertyMap.get(defaultPropertyName).getDevices().getLocks().stream()
+        appDataRepository.getDevices(defaultPropertyName).getLocks().stream()
             .filter(
                 propertyDevice ->
                     propertyDevice.getUnit() == unitNumber || propertyDevice.isAdminAccessible())
             .collect(Collectors.toList()));
 
     adminResidentDevices.setThermostats(
-        residentialPropertyMap.get(defaultPropertyName).getDevices().getThermostats().stream()
+        appDataRepository.getDevices(defaultPropertyName).getThermostats().stream()
             .filter(
                 propertyDevice ->
                     propertyDevice.getUnit() == unitNumber || propertyDevice.isAdminAccessible())
             .collect(Collectors.toList()));
 
     return adminResidentDevices;
-  }
-
-  @PostConstruct
-  private void setUpData() throws IOException {
-
-    if (residentialPropertyMap.isEmpty()) {
-      InputStream is = getClass().getResourceAsStream(resourceFileName);
-      ResidentialProperty residentialProperty =
-          objectMapper.readValue(is, ResidentialProperty.class);
-      loadPeopleMap(residentialProperty.getPeople());
-      residentialPropertyMap.put(residentialProperty.getName(), residentialProperty);
-    }
-  }
-
-  private void loadPeopleMap(List<People> peopleList) {
-    for (People person : peopleList) {
-      peopleMap.put(person.getFullName(), person);
-    }
-  }
-
-  /**
-   * Writes crud operations to the residency to the specified file
-   *
-   * @throws IOException
-   */
-  private void writeResidentialPropertyChangestoFile() throws IOException {
-    objectMapper.writeValue(
-        new File("property_data_changes.json"), residentialPropertyMap.get(defaultPropertyName));
   }
 }
