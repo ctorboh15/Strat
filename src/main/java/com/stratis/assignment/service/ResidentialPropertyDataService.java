@@ -1,8 +1,10 @@
 package com.stratis.assignment.service;
 
+import com.stratis.assignment.model.PropertyDevice;
 import com.stratis.assignment.repository.AppDataRepository;
 import com.stratis.assignment.model.Devices;
 import com.stratis.assignment.model.People;
+import java.util.function.Predicate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -129,20 +131,22 @@ public class ResidentialPropertyDataService {
     if (resident.isAdmin()) {
       residentDevices = getDevicesForAdminResident(unitNumber);
     } else {
+      Predicate<PropertyDevice> deviceFilter =
+          propertyDevice -> propertyDevice.getUnit() == unitNumber;
       residentDevices = new Devices();
       residentDevices.setLights(
           appDataRepository.getDevices(defaultPropertyName).getLights().stream()
-              .filter(propertyDevice -> propertyDevice.getUnit() == unitNumber)
+              .filter(deviceFilter)
               .collect(Collectors.toList()));
 
       residentDevices.setLocks(
           appDataRepository.getDevices(defaultPropertyName).getLocks().stream()
-              .filter(propertyDevice -> propertyDevice.getUnit() == unitNumber)
+              .filter(deviceFilter)
               .collect(Collectors.toList()));
 
       residentDevices.setThermostats(
           appDataRepository.getDevices(defaultPropertyName).getThermostats().stream()
-              .filter(propertyDevice -> propertyDevice.getUnit() == unitNumber)
+              .filter(deviceFilter)
               .collect(Collectors.toList()));
     }
 
@@ -158,26 +162,22 @@ public class ResidentialPropertyDataService {
   private Devices getDevicesForAdminResident(int unitNumber) {
 
     Devices adminResidentDevices = new Devices();
-
+    Predicate<PropertyDevice> deviceFilter =
+        propertyDevice ->
+            propertyDevice.getUnit() == unitNumber || propertyDevice.isAdminAccessible();
     adminResidentDevices.setLights(
         appDataRepository.getDevices(defaultPropertyName).getLights().stream()
-            .filter(
-                propertyDevice ->
-                    propertyDevice.getUnit() == unitNumber || propertyDevice.isAdminAccessible())
+            .filter(deviceFilter)
             .collect(Collectors.toList()));
 
     adminResidentDevices.setLocks(
         appDataRepository.getDevices(defaultPropertyName).getLocks().stream()
-            .filter(
-                propertyDevice ->
-                    propertyDevice.getUnit() == unitNumber || propertyDevice.isAdminAccessible())
+            .filter(deviceFilter)
             .collect(Collectors.toList()));
 
     adminResidentDevices.setThermostats(
         appDataRepository.getDevices(defaultPropertyName).getThermostats().stream()
-            .filter(
-                propertyDevice ->
-                    propertyDevice.getUnit() == unitNumber || propertyDevice.isAdminAccessible())
+            .filter(deviceFilter)
             .collect(Collectors.toList()));
 
     return adminResidentDevices;

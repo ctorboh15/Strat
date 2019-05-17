@@ -12,18 +12,18 @@ import com.stratis.assignment.model.People;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class ResidentialApiObject {
+public class UnitApiObject {
   @JsonProperty("resident")
   private People person;
 
   @JsonProperty("allowed_devices")
   private Devices devices;
 
-  public ResidentialApiObject(People person) {
+  public UnitApiObject(People person) {
     this.person = person;
   }
 
-  public ResidentialApiObject(People person, Devices devices) {
+  public UnitApiObject(People person, Devices devices) {
     this(person);
     this.devices = devices;
   }
