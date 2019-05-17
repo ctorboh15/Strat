@@ -110,3 +110,8 @@ E.G.
               -H 'Authorization: Bearer {{Token}}' \
               -H 'Connection: keep-alive' \
               -H 'Content-Type: application/json' \`
+
+
+ ** Note **
+ The jar is configured to generate a `property_data_changes.json` file when changes have been made in the application.
+ The file will be generated in the same directory that the jar is running from.
