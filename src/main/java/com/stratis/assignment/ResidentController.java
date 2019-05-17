@@ -27,10 +27,12 @@ public class ResidentController {
   @Autowired private ResidentialPropertyDataService residentialPropertyDataService;
   @Autowired private JwtUtil jwtTokenUtil;
 
-  @GetMapping("/login")
+  @PostMapping("/login")
   public ResponseEntity<String> getUserJwt(
-      @RequestParam String firstName, @RequestParam String lastName) {
-    People resident = getResidentFromDataService(firstName, lastName);
+      @RequestBody @Valid ResidentApiObject residentApiObject) {
+    People resident =
+        getResidentFromDataService(
+            residentApiObject.getFirst_name(), residentApiObject.getLast_name());
 
     if (resident != null && resident.isAdmin()) {
       return new ResponseEntity<>(jwtTokenUtil.generateToken(resident), HttpStatus.OK);
@@ -56,14 +58,14 @@ public class ResidentController {
   /**
    * Searches for a resident given a first and last name.
    *
-   * @param firstName
-   * @param lastName
+   * @param first_name
+   * @param last_name
    * @return
    */
   @GetMapping("/residence/people/search")
   public ResponseEntity<UnitApiObject> searchForResident(
-      @RequestParam String firstName, @RequestParam String lastName) {
-    People resident = getResidentFromDataService(firstName, lastName);
+      @RequestParam String first_name, @RequestParam String last_name) {
+    People resident = getResidentFromDataService(first_name, last_name);
 
     if (resident != null) {
       Devices devices = residentialPropertyDataService.getDevicesForResident(resident);
@@ -123,7 +125,7 @@ public class ResidentController {
       e.printStackTrace();
       return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
     } catch (EntityNotFoundException ex) {
-      return new ResponseEntity("No ResidentApiObject found", HttpStatus.BAD_REQUEST);
+      return new ResponseEntity("No resident found", HttpStatus.BAD_REQUEST);
     }
 
     return new ResponseEntity<>(
@@ -157,7 +159,7 @@ public class ResidentController {
       return new ResponseEntity(HttpStatus.OK);
     }
     return new ResponseEntity<>(
-        "No ResidentApiObject found for specified unit", HttpStatus.BAD_REQUEST);
+        "No resident found for specified unit", HttpStatus.BAD_REQUEST);
   }
 
   /**

@@ -1,19 +1,112 @@
-Your tool should do the following:
+Starting the application
 
-* Take in the user's first and last name and only allow program access if the user is an authorized user. Assume a user is authorized if they have the property role of "Admin". Don't worry about writing additional logic to authorize the user.
-* Allow an authorized user to input a unit number and retrieve a list of all residents of that unit.
-* Allow a user to input a first name and last name and retrieve any information we have about a resident whose name matches that first and last name. That information should include the user's unit, their role(s) on the property, and any devices that the user can control
-* Write a function that will allow the user to move in a new resident or move out an old resident. (Don't change the data in property_data.json. Instead copy the new state of the data into a file named `property_data_changes.json`.)
+1.) Please have at least java jdk8 running with in your env
+2.) To start the application simply run the command `java -jar assignment-0.0.1-SNAPSHOT.jar` this will bring up the applications tomcat container on port 8080;
 
-Try to anticipate the user's needs and create an interface that meets them.
 
-## About the data
+Using the application.
 
-Sample data are in the file `property_data.json`.
-The "roles" key on people objects refers to the roles a user has on that property, which impacts what devices they can control.
+1.) Logging in
+    To use this app you must first login and generate a JWT token will need to be passed in all subsequent requests.
 
-A person may control a device if:
+    The login request URL takes a POST call with the user credentials being in the payload. If successful you should be return a token string to use with your requests.
 
-* It is associated with their unit of residence.
-* The device is marked as admin_accessible and the user is an admin.
-  * For example, Mackenzie Carroll can control the thermostat, lights, and lock that have a unit value that matches her residence, 102. Zakiyya Shabazz can control any device that has a unit value of 201, plus any "Sunnee" light and any lock (because she is an admin and those devices all have admin_accessible marked as true.)
+    E.G `curl -X POST \
+           http://localhost:8080/login \
+           -H 'Content-Type: application/json' \
+           -d '{
+         	"first_name":"Ty",
+         	"last_name":"Adams"
+         }'`
+
+
+2.) Searching for residents
+
+To search for residents use the "/residence/people/search?first_name={{first_name_here}}&last_name={{last_name_here}}" url endpoint. This endpoint
+is not case sensitive. See below example
+E.G.
+
+`curl -X GET \
+  'http://localhost:8080/residence/people/search?first_name=Ty&last_name=Adams' \
+  -H 'Accept: */*' \
+  -H 'Authorization: Bearer {{Token}}' \
+  -H 'Connection: keep-alive' \
+  -H 'Content-Type: application/json' \`
+
+
+3.) Getting Residents by unit
+
+    To retrieve all residents within a unit use the "residence/unit/{unit}" url endpoint. This is a GET request that takes requires the unit to be in the URL path
+    See Below Example
+
+    `curl -X GET \
+       http://localhost:8080/residence/unit/101 \
+       -H 'Accept: */*' \
+       -H 'Authorization: Bearer {{token}}' \
+       -H 'Connection: keep-alive' \
+       -H 'Content-Type: application/json' \`
+
+ 4.) Adding a resident to a unit
+
+     To create a resident to a unit submit a POST request the "residence/unit/{unit}" url endpoint. This will create a new resident for the given unit. In the
+     event that you want to make this resident an admin ... set the "isAdmin" flag to true. By default the application will default this flag to false.
+
+     E.G.
+     `curl -X POST \
+        http://localhost:8080/residence/unit/101 \
+        -H 'Accept: */*' \
+        -H 'Authorization: Bearer {{token}}' \
+        -H 'Connection: keep-alive' \
+        -H 'Content-Type: application/json' \
+        -d '{
+      	"first_name":"Cemah",
+      	"last_name":"Torboh",
+      	"isAdmin":true
+      }'`
+
+ 5.) Updating a resident
+
+      To update resident to a unit submit a PUT request the "residence/unit/{unit}" url endpoint. This will update a resident for the given unit. In the
+      event that you want to make this resident an admin ... set the "isAdmin" flag to true. For now this endpoint will only change the admin flag. Because
+      of some design decisions to change a residents name ... it's recommended you first remove the resident and recreate them with the appropriate name change.
+
+       E.G.
+           `curl -X PUT \
+              http://localhost:8080/residence/unit/101 \
+              -H 'Accept: */*' \
+              -H 'Authorization: Bearer {{token}}' \
+              -H 'Connection: keep-alive' \
+              -H 'Content-Type: application/json' \
+              -d '{
+            	"first_name":"Cemah",
+            	"last_name":"Torboh",
+            	"isAdmin":false
+            }'`
+
+ 6.) Deleting a resident
+
+       To remove resident to a unit submit a DELETE request the "residence/unit/{unit}" url endpoint.
+
+        E.G.
+            `curl -X DELETE \
+               http://localhost:8080/residence/unit/101 \
+               -H 'Accept: */*' \
+               -H 'Authorization: Bearer {{token}}' \
+               -H 'Connection: keep-alive' \
+               -H 'Content-Type: application/json' \
+               -d '{
+             	"first_name":"Cemah",
+             	"last_name":"Torboh"
+             }'`
+
+ 7.) Getting all Residents
+
+       To retrieve all residents submit a GET request to the "/residence/people" url. This will return you all residents in the property.
+       Note this will only give you resident information ... not device information.
+        E.G.
+            `curl -X GET \
+              'http://localhost:8080/residence/people' \
+              -H 'Accept: */*' \
+              -H 'Authorization: Bearer {{Token}}' \
+              -H 'Connection: keep-alive' \
+              -H 'Content-Type: application/json' \`
